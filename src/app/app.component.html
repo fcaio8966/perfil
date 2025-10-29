@@ -10,7 +10,7 @@
   </header>
 
   <section class="profile-section">
-    <h2 class="section-title">Perfil</h2>
+    <h2 class="section-title">Configurações do Perfil</h2>
     <p class="subtitle">
       Gerencie suas informações pessoais e como você aparece no Marketmeet
     </p>
@@ -32,22 +32,50 @@
       <form [formGroup]="profileForm" class="profile-form" (ngSubmit)="onSubmit()">
         <div class="form-group">
           <label for="fullName">Nome completo</label>
-          <input id="fullName" type="text" formControlName="fullName">
+          <input id="fullName" 
+                 type="text" 
+                 formControlName="fullName"
+                 [class.invalid]="fullNameControl?.invalid && fullNameControl?.touched">
+          <div class="error-message" *ngIf="fullNameControl?.touched && fullNameErrors">
+            {{ fullNameErrors }}
+          </div>
         </div>
 
         <div class="form-group">
           <label for="username">Nome de usuário</label>
-          <input id="username" type="text" formControlName="username">
+          <input id="username" 
+                 type="text" 
+                 formControlName="username"
+                 [class.invalid]="usernameControl?.invalid && usernameControl?.touched">
+          <div class="error-message" *ngIf="usernameControl?.touched && usernameErrors">
+            {{ usernameErrors }}
+          </div>
         </div>
 
         <div class="form-group">
           <label for="bio">Bio</label>
-          <textarea id="bio" rows="3" formControlName="bio"></textarea>
+          <textarea id="bio" 
+                    rows="3" 
+                    formControlName="bio"
+                    [class.invalid]="bioControl?.invalid && bioControl?.touched">
+          </textarea>
+          <div class="error-message" *ngIf="bioControl?.touched && bioErrors">
+            {{ bioErrors }}
+          </div>
+          <small class="char-count" [class.limit-reached]="bioControl?.value?.length >= 250">
+            {{ bioControl?.value?.length || 0 }}/250
+          </small>
         </div>
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input id="email" type="email" formControlName="email">
+          <input id="email" 
+                 type="email" 
+                 formControlName="email"
+                 [class.invalid]="emailControl?.invalid && emailControl?.touched">
+          <div class="error-message" *ngIf="emailControl?.touched && emailErrors">
+            {{ emailErrors }}
+          </div>
         </div>
 
         <div class="form-group">

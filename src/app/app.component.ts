@@ -18,10 +18,72 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule, ReactiveFormsModule]
 })
 export class AppComponent implements OnInit {
-  title = 'Perfil';
+  title = 'Configurações do Perfil';
   profileForm: FormGroup;
   profileImage: string | null = null;
 
+  // Validador para nome completo
+  validateFullName(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      if (!value) return { required: true };
+
+      // Verifica se tem pelo menos duas palavras
+      const words = value.trim().split(/\s+/);
+      if (words.length < 2) {
+        return { fullName: true };
+      }
+
+      // Verifica se cada palavra tem pelo menos 2 caracteres
+      if (words.some((word: string) => word.length < 2)) {
+        return { wordLength: true };
+      }
+
+      // Verifica se contém apenas letras e espaços
+      if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]*$/.test(value)) {
+        return { invalidChars: true };
+      }
+
+      return null;
+    };
+  }
+
+  // Validador para nome de usuário
+  validateUsername(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      if (!value) return { required: true };
+
+      // Verifica se tem entre 3 e 20 caracteres
+      if (value.length < 3 || value.length > 20) {
+        return { usernameLength: true };
+      }
+
+      // Permite apenas letras, números e underscore
+      if (!/^[a-zA-Z0-9_]*$/.test(value)) {
+        return { invalidUsername: true };
+      }
+
+      return null;
+    };
+  }
+
+  // Validador para bio
+  validateBio(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      if (!value) return null; // Bio não é obrigatória
+
+      // Máximo de 250 caracteres
+      if (value.length > 250) {
+        return { bioLength: true };
+      }
+
+      return null;
+    };
+  }
+
+  // Validador para telefone
   validatePhone(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const value = control.value;
@@ -47,9 +109,9 @@ export class AppComponent implements OnInit {
 
   constructor(private fb: FormBuilder) {
     this.profileForm = this.fb.group({
-      fullName: ['Ana Sha', [Validators.required]],
-      username: ['anasha', [Validators.required]],
-      bio: ['Apaixonada por tecnologia e sempre em busca dos melhores produtos.'],
+      fullName: ['Ana Sha', [Validators.required, this.validateFullName()]],
+      username: ['anasha', [Validators.required, this.validateUsername()]],
+      bio: ['Apaixonada por tecnologia e sempre em busca dos melhores produtos.', [this.validateBio()]],
       email: ['ana@gmail.com', [Validators.required, Validators.email]],
       phone: ['+55 11 99999-9999', [Validators.required, this.validatePhone()]]
     });
@@ -68,10 +130,76 @@ export class AppComponent implements OnInit {
     return this.profileForm.get('username')?.value || '';
   }
 
-  get phoneControl() {
-    return this.profileForm.get('phone');
+  // Getters para os controles do formulário
+  get fullNameControl() { return this.profileForm.get('fullName'); }
+  get usernameControl() { return this.profileForm.get('username'); }
+  get bioControl() { return this.profileForm.get('bio'); }
+  get emailControl() { return this.profileForm.get('email'); }
+  get phoneControl() { return this.profileForm.get('phone'); }
+
+  // Mensagens de erro para nome completo
+  get fullNameErrors(): string {
+    const control = this.fullNameControl;
+    if (control?.errors && control.touched) {
+      if (control.errors['required']) {
+        return 'O nome completo é obrigatório';
+      }
+      if (control.errors['fullName']) {
+        return 'Digite seu nome e sobrenome';
+      }
+      if (control.errors['wordLength']) {
+        return 'Cada nome deve ter pelo menos 2 letras';
+      }
+      if (control.errors['invalidChars']) {
+        return 'Use apenas letras no nome';
+      }
+    }
+    return '';
   }
 
+  // Mensagens de erro para nome de usuário
+  get usernameErrors(): string {
+    const control = this.usernameControl;
+    if (control?.errors && control.touched) {
+      if (control.errors['required']) {
+        return 'O nome de usuário é obrigatório';
+      }
+      if (control.errors['usernameLength']) {
+        return 'O nome de usuário deve ter entre 3 e 20 caracteres';
+      }
+      if (control.errors['invalidUsername']) {
+        return 'Use apenas letras, números e underscore';
+      }
+    }
+    return '';
+  }
+
+  // Mensagens de erro para bio
+  get bioErrors(): string {
+    const control = this.bioControl;
+    if (control?.errors && control.touched) {
+      if (control.errors['bioLength']) {
+        return 'A bio deve ter no máximo 250 caracteres';
+      }
+    }
+    return '';
+  }
+
+  // Mensagens de erro para email
+  get emailErrors(): string {
+    const control = this.emailControl;
+    if (control?.errors && control.touched) {
+      if (control.errors['required']) {
+        return 'O email é obrigatório';
+      }
+      if (control.errors['email']) {
+        return 'Digite um email válido';
+      }
+    }
+    return '';
+  }
+
+  // Mensagens de erro para telefone
   get phoneErrors(): string {
     const control = this.phoneControl;
     if (control?.errors && control.touched) {
@@ -100,39 +228,46 @@ export class AppComponent implements OnInit {
 
   /**
    * Handler para mascarar o telefone enquanto o usuário digita.
-   * Formato visual: +55 XX XXXXX-XXXX (aceita também números locais e adapta)
+   * Formato: +55 XX XXXXX-XXXX
    */
   onPhoneInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    let digits = input.value.replace(/\D/g, ''); // apenas dígitos
-
-    // Se o usuário digitou sem código do país, assumimos +55
-    if (!digits.startsWith('55')) {
+    let value = input.value;
+    
+    // Remove tudo exceto dígitos
+    let digits = value.replace(/\D/g, '');
+    
+    // Limita a 13 dígitos (55 + DDD + número)
+    digits = digits.substring(0, 13);
+    
+    // Adiciona 55 se não começar com ele
+    if (!digits.startsWith('55') && digits.length > 0) {
       digits = '55' + digits;
     }
-
-    // remova o '55' para formatar o restante
-    const rest = digits.slice(2);
-
-    let formatted = '+55 ';
-    if (rest.length <= 2) {
-      formatted += rest;
-    } else if (rest.length <= 6) {
-      formatted += rest.slice(0, 2) + ' ' + rest.slice(2);
-    } else if (rest.length <= 10) {
-      // 4+4 ou 5+4
-      if (rest.length === 9) {
-        // forma comum 9 dígitos do número: 5 + 4
-        formatted += rest.slice(0, 2) + ' ' + rest.slice(2, 7) + '-' + rest.slice(7);
-      } else {
-        formatted += rest.slice(0, 2) + ' ' + rest.slice(2, 6) + '-' + rest.slice(6);
+    
+    // Aplica a máscara
+    let formatted = '';
+    if (digits.length > 0) {
+      // Adiciona +55
+      formatted = '+55';
+      
+      if (digits.length > 2) {
+        // Adiciona DDD
+        formatted += ' ' + digits.substring(2, 4);
+        
+        if (digits.length > 4) {
+          // Adiciona primeira parte do número
+          formatted += ' ' + digits.substring(4, 9);
+          
+          if (digits.length > 9) {
+            // Adiciona parte final do número
+            formatted += '-' + digits.substring(9);
+          }
+        }
       }
-    } else {
-      // truncar excesso
-      formatted += rest.slice(0, 2) + ' ' + rest.slice(2, 7) + '-' + rest.slice(7, 11);
     }
 
-    // Atualiza o input exibido e o FormControl sem disparar ciclo infinito
+    // Atualiza o valor no input e no FormControl
     input.value = formatted;
     this.profileForm.get('phone')?.setValue(formatted, { emitEvent: false });
   }
